@@ -35,18 +35,17 @@ fi
 
 ## Custom Kernel is missing critical /proc/PW dir
 ## which contains infos about used WIFI/SENSOR etc
-## So we use static Values from user fs for now
-video=`cat /etc/PW/SENSOR`
-video_frontend=${video:0:4}
-wifi=`cat /etc/PW/WIFI`
-cpu_type=`cat /etc/PW/TYPE`
-SWID=`cat /etc/PW/SWID`
+## UPDATE: we now use our own custom kernel Module
+## to provide needed PROCFS entries to the rootfs
+##
+## Load Special kernel Module
+insmod /lib/modules/puwell-mod.ko
 
-#video=`cat /proc/PW/SENSOR`
-#video_frontend=${video:0:4}
-#wifi=`cat /proc/PW/WIFI`
-#cpu_type=`cat /proc/PW/TYPE`
-#SWID=`cat /proc/PW/SWID`
+video=`cat /proc/PW/SENSOR`
+video_frontend=${video:0:4}
+wifi=`cat /proc/PW/WIFI`
+cpu_type=`cat /proc/PW/TYPE`
+SWID=`cat /proc/PW/SWID`
 
 type=${SWID:14:4}
 echo "SWID      type $type"
@@ -65,8 +64,6 @@ if [ "$type" == "1702" ]; then
         video_frontend=1045
         wifi=8188
 fi
-
-
 
 echo "cpu_type $cpu_type"
 echo "wifi $wifi"
@@ -93,20 +90,20 @@ if [ "${wifi:0:4}" == "7601" ]; then
 fi
 
 cp /etc/wifi/wpa_supplicant.c /var
-
 mkdir -p /var/run/wpa_supplicant
-
 cp /gm/bin/wifi_rt8188/wpa_supplicant /var/
+
 echo "load wpa_supplicant"
 /var/wpa_supplicant -Dwext -i$ifname -c /var/wpa_supplicant.c &
 
-
+## Run user_pre.sh
 sh /usr/etc/user_pre.sh
-# for get pci_epcnt/cpu_enum
-# pci_epcnt = n, the GM8210_EP count.
-# cpu_enum = 0(host_fa726), 1(host_fa626), 2(host_7500), 3(dev_fa726), 4(dev_fa626)
 
+## Run vg_boot.sh
 sh /usr/gm/sh/vg_boot.sh
+
+## Mount SDCard?
 #sh /mount-tf.sh
 
+## Run user.sh script
 sh /usr/etc/user.sh
